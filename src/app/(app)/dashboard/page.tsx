@@ -25,7 +25,7 @@ export default function DashboardPage() {
   }, [allPosts]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Fixed Sidebar */}
       <div className="flex-none h-full bg-card border-r border-border">
         <Sidebar />
@@ -100,7 +100,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Other Dashboard Cards */}
-          <div className="grid grid-cols-1 gap-8 border-t border-border pt-8 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 border-t border-border pt-8 md:grid-cols-2 mb-8">
             <Card className="group bg-card border-border hover:shadow-xl transition-shadow duration-300 ease-in-out">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-3 text-2xl">
