@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext'; // Assuming useAuth handles profile picture localStorage
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { Post } from '@/types/post';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -14,13 +14,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Edit3, Save, BookOpen, UserCircle, Edit, CheckCircle, XCircle, ImageIcon } from 'lucide-react';
+import { Edit3, Save, BookOpen, UserCircle, Edit, CheckCircle, XCircle, ImageIcon, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton'; 
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, getUserBio, updateUserBio, loading: authLoading } = useAuth();
+  // Assuming useAuth provides user, getUserBio, updateUserBio, userProfilePicture, and updateUserProfilePicture
+  const { user, getUserBio, updateUserBio, userProfilePicture, updateUserProfilePicture, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -32,6 +33,8 @@ export default function ProfilePage() {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [publishedPosts, setPublishedPosts] = useState<Post[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [tempProfilePicture, setTempProfilePicture] = useState<string | null>(null); // Temporary state for new selection
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -44,8 +47,9 @@ export default function ProfilePage() {
     if (user) {
       const userBio = getUserBio(user);
       setBio(userBio || '');
+      // userProfilePicture is now read from useAuth, which gets it from localStorage
     }
-  }, [user, getUserBio, authLoading, router, toast]);
+  }, [user, getUserBio, authLoading, router, toast, userProfilePicture]); // Added userProfilePicture to deps
 
   useEffect(() => {
     if (mounted && user) { // Ensure user is defined before filtering
@@ -54,7 +58,7 @@ export default function ProfilePage() {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setPublishedPosts(userPublishedPosts);
     }
-  }, [allPosts, mounted, user]); // Add user to dependency array
+  }, [allPosts, mounted, user]);
 
   const handleSaveBio = async () => {
     if (!user) return;
@@ -66,6 +70,46 @@ export default function ProfilePage() {
       toast({ title: 'Error Updating Bio', description: 'Failed to update biography. Please try again.', variant: 'destructive' });
     }
   };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({ title: 'File too large', description: 'Profile picture must be less than 5MB.', variant: 'destructive' });
+        // Clear the input so the same file can be selected again if needed
+        if (fileInputRef.current) { fileInputRef.current.value = ''; }
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTempProfilePicture(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleSaveProfilePicture = async () => {
+     if (!user || !tempProfilePicture) return;
+
+     // Use the updateUserProfilePicture from useAuth to save to localStorage
+     const success = await updateUserProfilePicture(user, tempProfilePicture);
+
+     if (success) {
+        toast({ title: 'Profile Picture Updated', description: 'Your profile picture has been successfully saved.', className: 'bg-primary text-primary-foreground' });
+        setTempProfilePicture(null); // Clear temporary state after saving
+        // The Avatar will now automatically show the picture from userProfilePicture provided by useAuth
+     } else {
+        toast({ title: 'Error Updating Profile Picture', description: 'Failed to update profile picture. Please try again.', variant: 'destructive' });
+     }
+     // Clear the input regardless of success/failure
+     if (fileInputRef.current) { fileInputRef.current.value = ''; }
+  };
+
+
 
   if (!mounted || authLoading) {
     return (
@@ -114,14 +158,53 @@ export default function ProfilePage() {
 
       <Card className="bg-card border-border shadow-xl overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-6 p-6 bg-card/50 border-b border-border">
-          <Avatar className="h-24 w-24 border-4 border-primary">
-            <AvatarImage src={`https://picsum.photos/seed/${user.replace(/\s+/g, '_')}/200`} alt={user} data-ai-hint="abstract user" className="object-cover"/>
-            <AvatarFallback className="text-3xl bg-primary text-primary-foreground">{user.substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          
+          {/* Profile Picture Section */}
+          <div className="relative group cursor-pointer" onClick={handleProfilePictureClick}>
+            <Avatar className="h-24 w-24 border-4 border-primary">
+              {/* Prioritize the profile picture from useAuth, then the temporary one, then the placeholder */}
+              {userProfilePicture ? (
+                 <AvatarImage src={userProfilePicture} alt={`${user}'s profile picture`} className="object-cover"/>
+              ) : tempProfilePicture ? (
+                 <AvatarImage src={tempProfilePicture} alt={`${user}'s profile picture`} className="object-cover"/>
+              ) : (
+                <AvatarImage 
+                  src={`https://picsum.photos/seed/${user.replace(/\s+/g, '_')}/200`} 
+                  alt={user} 
+                  data-ai-hint="abstract user" 
+                  className="object-cover"
+                />
+              )}
+              <AvatarFallback className="text-3xl bg-primary text-primary-foreground">{user.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            {/* Overlay for hover effect */}
+            <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+               <Upload className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
           <div className="mt-4 sm:mt-0 text-center sm:text-left">
             <CardTitle className="text-3xl font-bold text-foreground">{user}</CardTitle>
             <CardDescription className="text-muted-foreground mt-1">Travelfy Member</CardDescription>
+             {tempProfilePicture && ( // Show save button only if a new picture is selected temporarily
+                 <Button 
+                   onClick={handleSaveProfilePicture} 
+                   size="sm" 
+                   className="mt-3 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                 >
+                    <Save className="mr-2 h-4 w-4" /> Save New Picture
+                 </Button>
+              )}
           </div>
+
         </CardHeader>
         <CardContent className="space-y-8 p-6">
           <div>
@@ -139,7 +222,7 @@ export default function ProfilePage() {
                 <Textarea
                   id="bio"
                   value={bio}
-                  onChange={(e) => setBio(e.target.value)}
+                  onChange={(e) => setBio(e.target.value)} 
                   placeholder="Share a bit about your travel style, favorite destinations, or anything else you'd like others to know..."
                   rows={5}
                   className="bg-input border-border focus:ring-primary focus:border-primary text-base p-3"

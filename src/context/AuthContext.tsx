@@ -8,6 +8,7 @@ interface UserCredentials {
   username: string;
   passwordHash: string; // In a real app, NEVER store plain passwords. Hash them.
   bio?: string; // Optional biography field
+  profilePicture?: string; // Optional profile picture data URL
 }
 
 interface AuthContextType {
@@ -18,6 +19,8 @@ interface AuthContextType {
   signup: (username: string, pass: string) => Promise<boolean>;
   getUserBio: (username: string) => string | undefined;
   updateUserBio: (username: string, bio: string) => Promise<boolean>;
+  userProfilePicture: string | undefined; // Profile picture for the current user
+  updateUserProfilePicture: (username: string, pictureDataUrl: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,7 +60,9 @@ const removeCookie = (name: string) => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useLocalStorage<string | null>('authUser', null);
   // Store a list of users. Add default admin user if list doesn't exist.
-  const [users, setUsers] = useLocalStorage<UserCredentials[]>('userCredentials', [{ username: 'admin', passwordHash: simpleHash('password'), bio: 'Default administrator account.' }]);
+  const [users, setUsers] = useLocalStorage<UserCredentials[]>('userCredentials', [
+    { username: 'admin', passwordHash: simpleHash('password'), bio: 'Default administrator account.', profilePicture: '' } // Initialize profilePicture
+  ]);
   const [loading, setLoading] = useState(true);
 
   // Check cookie on initial load to sync state if localStorage was cleared but cookie remains
@@ -105,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
        username,
        passwordHash: simpleHash(pass),
        bio: '', // Initialize bio as empty string
+       profilePicture: '', // Initialize profilePicture as empty string
      };
      setUsers([...users, newUser]);
      // Initialize post storage for the new user
@@ -147,6 +153,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
   }, [users, setUsers]);
 
+   const updateUserProfilePicture = useCallback(async (username: string, pictureDataUrl: string): Promise<boolean> => {
+       setLoading(true);
+       const userIndex = users.findIndex(u => u.username === username);
+       if (userIndex === -1) {
+           setLoading(false);
+           return false; // User not found
+       }
+       const updatedUsers = [...users];
+       updatedUsers[userIndex] = { ...updatedUsers[userIndex], profilePicture: pictureDataUrl };
+       setUsers(updatedUsers);
+       // Simulate async operation
+       await new Promise(resolve => setTimeout(resolve, 100));
+       setLoading(false);
+       return true;
+   }, [users, setUsers]);
+
+    // Derive the current user's profile picture
+    const userProfilePicture = currentUser ? users.find(u => u.username === currentUser)?.profilePicture : undefined;
+
 
   // Ensure loading state is accurate, client-side only
   useEffect(() => {
@@ -158,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [currentUser]);
 
   return (
-    <AuthContext.Provider value={{ user: currentUser, loading, login, logout, signup, getUserBio, updateUserBio }}>
+    <AuthContext.Provider value={{ user: currentUser, loading, login, logout, signup, getUserBio, updateUserBio, userProfilePicture, updateUserProfilePicture }}>
       {children}
     </AuthContext.Provider>
   );
