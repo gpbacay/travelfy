@@ -1,26 +1,74 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+body {
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 7%; /* Near black - Spotify's #121212 */
+    --foreground: 0 0% 98%; /* Light gray/white */
+    --card: 0 0% 9%; /* Slightly lighter dark gray - Spotify's #181818 */
+    --card-foreground: 0 0% 98%; /* Light gray/white */
+    --popover: 0 0% 9%; /* Dark popover background */
+    --popover-foreground: 0 0% 98%; /* Light popover text */
+    
+    --primary: 141 76% 48%; /* Spotify Green - #1DB954 */
+    --primary-foreground: 0 0% 100%; /* White text on green */
+    
+    --secondary: 0 0% 16%; /* Darker gray for secondary elements - Spotify's #282828 */
+    --secondary-foreground: 0 0% 80%; /* Lighter gray for secondary text */
+    
+    --muted: 0 0% 12%; /* Darker muted background */
+    --muted-foreground: 0 0% 60%; /* Medium gray for muted text - Spotify's #B3B3B3 */
+    
+    --accent: 141 76% 48%; /* Spotify Green - #1DB954 */
+    --accent-foreground: 0 0% 100%; /* White text on green */
+    
+    --destructive: 0 84.2% 60.2%; /* Standard red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* Light text on red */
+    
+    --border: 0 0% 20%; /* Subtle border color, slightly lighter than card */
+    --input: 0 0% 14%; /* Dark input background */
+    --ring: 141 76% 48%; /* Spotify Green for focus rings */
+    
+    --chart-1: 141 76% 55%;
+    --chart-2: 141 60% 40%;
+    --chart-3: 141 80% 35%;
+    --chart-4: 141 70% 60%;
+    --chart-5: 141 50% 50%;
+    
+    --radius: 0.5rem;
+
+    /* Sidebar specific theme variables - Spotify like */
+    --sidebar-background: 0 0% 0%; /* Black for sidebar */
+    --sidebar-foreground: 0 0% 70%; /* Muted text for sidebar items */
+    --sidebar-primary: 141 76% 48%; /* Green for active/hover items */
+    --sidebar-primary-foreground: 0 0% 100%; /* White text on green */
+    --sidebar-accent: 0 0% 15%; /* Hover background for sidebar items */
+    --sidebar-accent-foreground: 0 0% 98%; /* Text color on hover */
+    --sidebar-border: 0 0% 10%; /* Border color within sidebar if needed */
+    --sidebar-ring: 141 76% 48%; /* Focus ring for sidebar items */
+  }
+
+  /* 
+    If a light theme is ever needed, it can be defined here using .light class
+    For now, the app is dark mode by default as per request.
+  */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom styles for contenteditable */
+[contenteditable] {
+  @apply min-h-[200px] border border-input rounded-md p-3 bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
 }
